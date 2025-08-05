@@ -121,7 +121,7 @@
         </form>
     </div>
 
-   <script>
+ <script>
         document.getElementById('responseForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -149,14 +149,6 @@
                 return;
             }
             
-            // 従来のフォーム送信を使用（CORS回避）
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `https://chiakichiaki.app.n8n.cloud/webhook-waiting/${workflowId}`;
-            form.target = '_blank';
-            form.style.display = 'none';
-            
-            // フォームデータを追加
             const data = {
                 specialist_name: document.getElementById('specialist_name').value,
                 expert_answer: document.getElementById('expert_answer').value,
@@ -164,30 +156,27 @@
                 recommended_action: document.getElementById('recommended_action').value
             };
             
-            Object.keys(data).forEach(key => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = data[key];
-                form.appendChild(input);
-            });
+            // XMLHttpRequest を使用（CORS回避）
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `https://chiakichiaki.app.n8n.cloud/webhook-waiting/${workflowId}`);
+            xhr.setRequestHeader('Content-Type', 'application/json');
             
-            document.body.appendChild(form);
-            
-            // 成功メッセージを表示
-            successMsg.textContent = '✅ 回答が送信されました！新しいタブでn8nの確認画面が開きます。';
-            successMsg.style.display = 'block';
-            document.getElementById('responseForm').style.display = 'none';
-            
-            // フォーム送信
-            form.submit();
-            
-            // フォームを削除
-            setTimeout(() => {
-                if (document.body.contains(form)) {
-                    document.body.removeChild(form);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        successMsg.textContent = '✅ 回答が正常に送信されました！ありがとうございます。';
+                        successMsg.style.display = 'block';
+                        document.getElementById('responseForm').style.display = 'none';
+                    } else {
+                        errorMsg.textContent = '送信中にエラーが発生しました。もう一度お試しください。';
+                        errorMsg.style.display = 'block';
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '回答を送信';
+                    }
                 }
-            }, 2000);
+            };
+            
+            xhr.send(JSON.stringify(data));
         });
         
         // ページ読み込み時にworkflowIDをチェック
